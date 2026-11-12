@@ -24,6 +24,10 @@ export default function NewMissionPage() {
     setLoading(true);
     setError(null);
     setOriginalIntent(intent);
+    setClarificationQuestions([]);
+    setClarificationAnswers({});
+    setCompiledPolicy(null);
+    setCompilationResult(null);
 
     try {
       const response = await fetch('/api/intent/compile', {
@@ -208,7 +212,8 @@ export default function NewMissionPage() {
                   </label>
                   <input
                     type="text"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                    aria-label={question}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
                     value={clarificationAnswers[question] || ''}
                     onChange={(e) =>
                       setClarificationAnswers({ ...clarificationAnswers, [question]: e.target.value })
@@ -224,7 +229,7 @@ export default function NewMissionPage() {
                 </Button>
                 <Button
                   onClick={handleClarificationSubmit}
-                  disabled={loading || Object.keys(clarificationAnswers).length < clarificationQuestions.length}
+                  disabled={loading || clarificationQuestions.some((question) => !clarificationAnswers[question]?.trim())}
                 >
                   {loading ? (
                     <>

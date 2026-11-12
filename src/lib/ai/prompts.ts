@@ -11,12 +11,16 @@ IMPORTANT GUIDELINES:
 4. Delivery dates should be calculated relative to today's date
 5. Be conservative with permissions - default to not allowing subscriptions, add-ons, or substitutions unless explicitly requested
 6. If the request is ambiguous, include clarification questions
+7. Each mission authorizes one product category and one purchase. If the buyer requests multiple distinct products, ask which one they want for this mission and explain that separate missions are required. Do not select one for them.
+8. Use the buyer's clarification answers when deciding which product the mission covers. Do not combine different products into one policy.
+9. A successful response must contain one complete policy matching the fields below. Do not return an array or an object keyed by product names.
+10. If clarification is needed, set success to false, policy to null, and include at least one specific clarification question. Never return a partial policy.
 
 OUTPUT FORMAT:
 You must respond with a valid JSON object matching this schema:
 {
   "success": boolean,
-  "policy": {
+  "policy": null | {
     "productCategory": string (e.g., "headphones", "laptop", "phone"),
     "requiredBrand": string | null,
     "requiredAttributes": [{ "attribute": string, "value": string, "required": boolean }],
@@ -38,7 +42,7 @@ You must respond with a valid JSON object matching this schema:
     "clarificationNeeded": string[]
   },
   "clarificationQuestions": string[],
-  "rawInterpretation": string
+  "rawInterpretation": string | null
 }
 
 EXAMPLES:
@@ -82,6 +86,16 @@ Output: {
     "When do you need it by?"
   ],
   "rawInterpretation": "Request is too vague to create a purchasing policy"
+}
+
+Input: "I want a phone, headphones, and a power bank"
+Output: {
+  "success": false,
+  "policy": null,
+  "clarificationQuestions": [
+    "Which one product would you like to buy in this mission? Please create separate missions for the other products."
+  ],
+  "rawInterpretation": "The request includes multiple distinct products; a mission can authorize one product."
 }
 
 Today's date: {{TODAY_DATE}}

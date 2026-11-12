@@ -3,6 +3,7 @@ import {
   IntentCompilationResponseSchema,
   PermissionPolicy,
 } from '@/types/policy';
+import { z } from 'zod';
 import { INTENT_COMPILER_SYSTEM_PROMPT } from './prompts';
 import { getOpenRouterClient, getOpenRouterModel } from './client';
 
@@ -32,6 +33,39 @@ interface CompileIntentOptions {
   currentDate?: Date;
 }
 
+const IntentResponseEnvelopeSchema = z.object({
+  success: z.boolean(),
+  policy: z.unknown(),
+  clarificationQuestions: z.array(z.string().trim().min(1)).default([]),
+  rawInterpretation: z.string().nullable().default(null),
+});
+
+function parseIntentResponse(content: string): IntentCompilationResponse {
+  const parsed: unknown = JSON.parse(content);
+  const envelope = IntentResponseEnvelopeSchema.parse(parsed);
+
+  if (!envelope.success) {
+    if (envelope.clarificationQuestions.length === 0) {
+      throw new Error('A clarification response must include at least one question');
+    }
+    return IntentCompilationResponseSchema.parse({ ...envelope, policy: null });
+  }
+
+  if (envelope.clarificationQuestions.length > 0) {
+    throw new Error('A successful response cannot require clarification');
+  }
+  const policy = z.record(z.string(), z.unknown()).parse(envelope.policy);
+  return IntentCompilationResponseSchema.parse({
+    ...envelope,
+    policy: {
+      ...getDefaultPolicy(),
+      ...policy,
+      requireHumanApproval: true,
+      approvedProducts: [],
+    },
+  });
+}
+
 /**
  * Compiles a natural language shopping intent into a structured permission policy.
  * Uses OpenRouter to understand intent and extract purchasing constraints.
@@ -51,53 +85,44 @@ export async function compileIntent(
     };
   }
 
-  try {
-    const client = getOpenRouterClient();
-    const model = getOpenRouterModel();
+  const client = getOpenRouterClient();
+  const model = getOpenRouterModel();
+  const systemPrompt = INTENT_COMPILER_SYSTEM_PROMPT.replace(
+    '{{TODAY_DATE}}',
+    currentDate.toISOString().split('T')[0]
+  );
 
-    // Prepare the system prompt with today's date
-    const systemPrompt = INTENT_COMPILER_SYSTEM_PROMPT.replace(
-      '{{TODAY_DATE}}',
-      currentDate.toISOString().split('T')[0]
-    );
-
-    const response = await client.chat.completions.create({
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Shopping request: "${prompt}"` },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.2, // Low temperature for consistent, structured output
-      max_tokens: 2000,
-    });
-
-    const content = response.choices[0]?.message?.content;
-    if (!content) {
-      throw new Error('No response from OpenRouter');
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let content: string | null | undefined;
+    try {
+      const response = await client.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Shopping request: "${prompt}"` },
+          ...(attempt === 1 ? [{
+            role: 'system' as const,
+            content: 'Your previous response did not match the required format. Return valid JSON with a boolean success. For success=true include exactly one complete policy; for success=false set policy to null and provide clarificationQuestions. If the request has multiple products and the buyer has not chosen one in their clarifications, ask them to choose one.',
+          }] : []),
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.2,
+        max_tokens: 2000,
+      });
+      content = response.choices[0]?.message?.content;
+    } catch (error) {
+      console.error('OpenRouter intent compilation request failed:', error);
+      throw new Error('The AI service could not process your request. Check the OpenRouter configuration and try again.');
     }
 
-    // Parse the JSON response
-    const parsed = JSON.parse(content);
-
-    // Validate with Zod schema
-    const validated = IntentCompilationResponseSchema.parse({
-      success: parsed.success ?? false,
-      policy: parsed.policy ? {
-        ...getDefaultPolicy(),
-        ...parsed.policy,
-        requireHumanApproval: true,
-        approvedProducts: [],
-      } : null,
-      clarificationQuestions: parsed.clarificationQuestions ?? [],
-      rawInterpretation: parsed.rawInterpretation ?? null,
-    });
-
-    return validated;
-  } catch (error) {
-    console.error('Intent compilation error:', error);
-    throw new Error('Intent compilation failed. Verify the OpenRouter API configuration and retry.');
+    try {
+      if (!content) throw new Error('The AI response was empty');
+      return parseIntentResponse(content);
+    } catch (error) {
+      console.error(`Invalid AI intent response (attempt ${attempt + 1}):`, error);
+    }
   }
+  throw new Error('The AI returned an incomplete policy. Please try again with one product and its budget per mission.');
 }
 
 /**

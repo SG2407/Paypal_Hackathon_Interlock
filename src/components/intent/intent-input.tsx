@@ -40,6 +40,9 @@ export function IntentInput({ onSubmit, loading, placeholder }: IntentInputProps
         </CardTitle>
       </CardHeader>
       <CardContent>
+        <p className="mb-4 text-sm text-gray-600">
+          Create one mission per product. The demonstration catalog currently contains headphones.
+        </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Textarea
             value={intent}

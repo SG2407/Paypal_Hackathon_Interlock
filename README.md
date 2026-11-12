@@ -5,6 +5,7 @@
 IntentLock is a PayPal AI Hackathon prototype that turns natural-language shopping requests into versioned purchase permissions. AI can interpret intent and recommend products; a separate deterministic policy engine decides whether a purchase passes, needs buyer confirmation, or is blocked. PayPal Sandbox buyer approval and server-side order verification remain required for every captured payment.
 
 The seeded catalog is demonstration data, not a live merchant marketplace. The app is restricted to PayPal Sandbox and must never be configured with production credentials.
+Each mission covers one product; create separate missions for multiple products. The seeded catalog currently contains headphones.
 
 ## What it does
 
