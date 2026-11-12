@@ -68,12 +68,14 @@ Set the following values in `.env`:
 | `PAYPAL_CLIENT_ID` | PayPal Sandbox REST app client ID |
 | `PAYPAL_CLIENT_SECRET` | PayPal Sandbox REST app secret; server-side only |
 | `OPENROUTER_API_KEY` | Server-side OpenRouter API key |
-| `OPENROUTER_MODEL` | OpenRouter model slug that supports JSON output, for example `openai/gpt-4o` |
+| `OPENROUTER_MODEL` | OpenRouter model slug that supports JSON output; defaults to `openrouter/free` |
 | `APP_BASE_URL` | App URL used for PayPal return/cancel URLs; use `http://localhost:3000` locally |
 | `INTENTLOCK_DEMO_MODE` | Set to `true` only when intentionally running the cart-drift demo |
 | `NEXT_PUBLIC_INTENTLOCK_DEMO_MODE` | Also set to `true` to display the demo control in the UI |
 
 Never commit `.env` or use PayPal production credentials. Outside localhost, `APP_BASE_URL` must use HTTPS. The demo endpoint is disabled unless `INTENTLOCK_DEMO_MODE=true`; both demo variables should be reset to `false` when the test is over.
+
+`openrouter/free` selects an available free model for each request. Free models have usage limits, variable availability, and varying output quality; the router does not grant unlimited credits. You may set a different model slug explicitly, but check its pricing before using it. See [OpenRouter's free router documentation](https://openrouter.ai/docs/guides/routing/routers/free-router) for details.
 
 Initialize and seed the local database:
 

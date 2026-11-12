@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
 export function getOpenRouterModel(): string {
-  return process.env.OPENROUTER_MODEL || 'openai/gpt-4o';
+  return process.env.OPENROUTER_MODEL || 'openrouter/free';
 }
 
 export function getOpenRouterClient(): OpenAI {
