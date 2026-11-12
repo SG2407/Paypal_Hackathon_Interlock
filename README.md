@@ -8,7 +8,7 @@ The seeded catalog is demonstration data, not a live merchant marketplace. The a
 
 ## What it does
 
-- Compiles a buyer prompt into a Zod-validated, versioned permission policy using OpenAI.
+- Compiles a buyer prompt into a Zod-validated, versioned permission policy using OpenRouter.
 - Recommends products from the local seeded catalog and explains their policy results.
 - Enforces `PASS`, `REVIEW`, and `BLOCK` using deterministic server-side rules.
 - Records narrow, buyer-confirmed exceptions as new policy versions; hard blocks cannot be overridden.
@@ -22,7 +22,7 @@ The seeded catalog is demonstration data, not a live merchant marketplace. The a
 ```mermaid
 flowchart LR
   Buyer[Buyer prompt and confirmation] --> App[Next.js App Router]
-  App --> AI[OpenAI intent and recommendations]
+  App --> AI[OpenRouter intent and recommendations]
   App --> Policy[Deterministic policy engine]
   Policy -->|PASS only| SDK[PayPal JavaScript SDK v6]
   SDK -->|Buyer approval| API[Next.js checkout routes]
@@ -39,7 +39,7 @@ flowchart LR
 
 - Next.js App Router, React, TypeScript, Tailwind CSS, Lucide icons
 - Prisma ORM and SQLite
-- OpenAI Node SDK with structured policy output
+- OpenRouter API with the OpenAI-compatible Node SDK and structured policy output
 - PayPal JavaScript SDK v6 and PayPal Orders v2 REST API (Sandbox only)
 - Zod, Vitest, ESLint, TypeScript
 
@@ -47,7 +47,7 @@ flowchart LR
 
 - Node.js compatible with the installed Next.js version (Node.js 20.9 or later recommended)
 - npm
-- OpenAI API key for AI intent compilation and product recommendations
+- OpenRouter API key for AI intent compilation and product recommendations
 - PayPal developer account with a **Sandbox REST app** (client ID and secret)
 - A separate PayPal **Sandbox personal/buyer** account for checkout approval
 
@@ -66,8 +66,8 @@ Set the following values in `.env`:
 | `PAYPAL_ENV` | Must be `sandbox` |
 | `PAYPAL_CLIENT_ID` | PayPal Sandbox REST app client ID |
 | `PAYPAL_CLIENT_SECRET` | PayPal Sandbox REST app secret; server-side only |
-| `OPENAI_API_KEY` | Server-side OpenAI API key |
-| `OPENAI_MODEL` | OpenAI model name, for example `gpt-4o` |
+| `OPENROUTER_API_KEY` | Server-side OpenRouter API key |
+| `OPENROUTER_MODEL` | OpenRouter model slug that supports JSON output, for example `openai/gpt-4o` |
 | `APP_BASE_URL` | App URL used for PayPal return/cancel URLs; use `http://localhost:3000` locally |
 | `INTENTLOCK_DEMO_MODE` | Set to `true` only when intentionally running the cart-drift demo |
 | `NEXT_PUBLIC_INTENTLOCK_DEMO_MODE` | Also set to `true` to display the demo control in the UI |
@@ -99,7 +99,7 @@ Open [http://localhost:3000](http://localhost:3000).
 6. Approve with the Sandbox buyer account. IntentLock then retrieves the real order and only captures if the server-side validations pass.
 7. Review the actual order/capture IDs and audit history in the app.
 
-Without Sandbox credentials, the AI and policy flows can still be explored, but PayPal checkout cannot be completed. Without an OpenAI API key, AI operations return a configuration error rather than fabricated results.
+Without Sandbox credentials, the AI and policy flows can still be explored, but PayPal checkout cannot be completed. Without an OpenRouter API key, AI operations return a configuration error rather than fabricated results.
 
 ## Three-minute demo
 
@@ -132,7 +132,7 @@ Automated policy tests do not require live payment credentials. A real Sandbox c
 ## Security notes
 
 - PayPal endpoints are hardcoded to `api-m.sandbox.paypal.com`; production PayPal is not supported.
-- Client secrets and OpenAI keys are never sent to the browser.
+- PayPal client secrets and the OpenRouter API key are never sent to the browser.
 - The browser provides identifiers only; product price, tax, shipping, policy, and order details are loaded and checked server-side.
 - A PayPal order is retrieved again immediately before capture. Any failed mandatory check prevents capture.
 - The cart-drift path is opt-in, uses a buyer-approved Sandbox order, blocks its local checkout, and never invokes the capture endpoint.

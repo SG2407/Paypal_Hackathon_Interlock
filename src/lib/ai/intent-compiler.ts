@@ -1,19 +1,10 @@
-import OpenAI from 'openai';
 import {
   IntentCompilationResponse,
   IntentCompilationResponseSchema,
   PermissionPolicy,
 } from '@/types/policy';
 import { INTENT_COMPILER_SYSTEM_PROMPT } from './prompts';
-
-// Initialize OpenAI client
-function getOpenAIClient(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY environment variable is not set');
-  }
-  return new OpenAI({ apiKey });
-}
+import { getOpenRouterClient, getOpenRouterModel } from './client';
 
 // Default policy values for safe fallback
 function getDefaultPolicy(): Partial<PermissionPolicy> {
@@ -43,7 +34,7 @@ interface CompileIntentOptions {
 
 /**
  * Compiles a natural language shopping intent into a structured permission policy.
- * Uses OpenAI GPT-4o to understand the intent and extract constraints.
+ * Uses OpenRouter to understand intent and extract purchasing constraints.
  */
 export async function compileIntent(
   options: CompileIntentOptions
@@ -61,8 +52,8 @@ export async function compileIntent(
   }
 
   try {
-    const client = getOpenAIClient();
-    const model = process.env.OPENAI_MODEL || 'gpt-4o';
+    const client = getOpenRouterClient();
+    const model = getOpenRouterModel();
 
     // Prepare the system prompt with today's date
     const systemPrompt = INTENT_COMPILER_SYSTEM_PROMPT.replace(
@@ -83,7 +74,7 @@ export async function compileIntent(
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
-      throw new Error('No response from OpenAI');
+      throw new Error('No response from OpenRouter');
     }
 
     // Parse the JSON response
@@ -105,7 +96,7 @@ export async function compileIntent(
     return validated;
   } catch (error) {
     console.error('Intent compilation error:', error);
-    throw new Error('Intent compilation failed. Verify the OpenAI API configuration and retry.');
+    throw new Error('Intent compilation failed. Verify the OpenRouter API configuration and retry.');
   }
 }
 
@@ -222,8 +213,8 @@ export function compileIntentMock(prompt: string): IntentCompilationResponse {
 export async function processShoppingIntent(
   prompt: string
 ): Promise<IntentCompilationResponse> {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY environment variable is not set');
+  if (!process.env.OPENROUTER_API_KEY) {
+    throw new Error('OPENROUTER_API_KEY environment variable is not set');
   }
 
   return compileIntent({ prompt });

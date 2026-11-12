@@ -5,6 +5,7 @@ import { createAuditEvent } from '@/lib/audit';
 import { PermissionPolicySchema } from '@/types/policy';
 import { evaluatePolicy } from '@/lib/policy-engine';
 import { productFromRecord } from '@/lib/product-catalog';
+import { getOpenRouterModel } from '@/lib/ai/client';
 
 export async function GET(
   _request: Request,
@@ -56,7 +57,7 @@ export async function GET(
       data: {
         missionId: id,
         taskType: 'product_recommendation',
-        model: process.env.OPENAI_MODEL || 'gpt-4o',
+        model: getOpenRouterModel(),
         inputJson: JSON.stringify({ policyVersion: mission.policies[0].version, productIds: products.map(({ id: productId }) => productId) }),
         outputJson: JSON.stringify(ai),
       },
@@ -74,7 +75,7 @@ export async function GET(
   } catch (error) {
     console.error('Failed to generate recommendations:', error);
     const message = error instanceof Error ? error.message : 'Failed to generate recommendations';
-    const status = message.includes('OPENAI_API_KEY') ? 503 : 502;
+    const status = message.includes('OPENROUTER_API_KEY') ? 503 : 502;
     return NextResponse.json({ error: message }, { status });
   }
 }

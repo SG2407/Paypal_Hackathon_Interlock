@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { createAuditEvent } from '@/lib/audit';
+import { getOpenRouterModel } from '@/lib/ai/client';
 import { IntentCompilationResponseSchema, PermissionPolicySchema } from '@/types/policy';
 
 // Ensure demo workspace exists
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
         aiExecutions: compilation.success ? {
           create: {
             taskType: 'intent_compilation',
-            model: process.env.OPENAI_MODEL || 'gpt-4o',
+            model: getOpenRouterModel(),
             inputJson: JSON.stringify({ intent }),
             outputJson: JSON.stringify(compilation.data),
           },

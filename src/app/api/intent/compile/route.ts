@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Intent compilation error:', error);
     const message = error instanceof Error ? error.message : 'Failed to compile intent';
-    const status = message.includes('OPENAI_API_KEY') ? 503 : 502;
+    const status = message.includes('OPENROUTER_API_KEY') ? 503 : 502;
     return NextResponse.json(
       { error: message },
       { status }

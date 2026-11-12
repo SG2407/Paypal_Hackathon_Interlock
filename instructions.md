@@ -104,7 +104,7 @@ Use PayPal Sandbox only.
 
 - Consult the current official PayPal documentation before implementing the Orders API and JavaScript SDK flow.
 - Verify the actual SDK version and API methods instead of assuming names or copying outdated examples.
-- Keep PayPal client secrets and OpenAI API keys on the server.
+- Keep PayPal client secrets and OpenRouter API keys on the server.
 - Never trust client-submitted product prices, totals, or order details.
 - Derive purchase amounts from server-side product and order data.
 - Retrieve the actual PayPal order before capture.
@@ -151,7 +151,7 @@ Ask me only when you genuinely need information or an action that I must provide
 
 - GitHub authentication or repository access.
 - PayPal Sandbox client ID and secret.
-- OpenAI API key.
+- OpenRouter API key.
 - An important product or architecture decision that cannot reasonably be inferred.
 
 Do not ask me to paste credentials into source code or commit them.

@@ -1,4 +1,3 @@
-import OpenAI from 'openai';
 import {
   PermissionPolicy,
   AIRecommendationResponse,
@@ -7,15 +6,7 @@ import {
 } from '@/types/policy';
 import { Product } from '@/types/product';
 import { PRODUCT_RECOMMENDATION_SYSTEM_PROMPT } from './prompts';
-
-// Initialize OpenAI client
-function getOpenAIClient(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY environment variable is not set');
-  }
-  return new OpenAI({ apiKey });
-}
+import { getOpenRouterClient, getOpenRouterModel } from './client';
 
 /**
  * Format product for AI context
@@ -66,8 +57,8 @@ export async function recommendProducts(
   options: RecommendProductsOptions
 ): Promise<AIRecommendationResponse> {
   const { policy, products, maxRecommendations = 5 } = options;
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY environment variable is not set');
+  if (!process.env.OPENROUTER_API_KEY) {
+    throw new Error('OPENROUTER_API_KEY environment variable is not set');
   }
 
   if (products.length === 0) {
@@ -78,8 +69,8 @@ export async function recommendProducts(
   }
 
   try {
-    const client = getOpenAIClient();
-    const model = process.env.OPENAI_MODEL || 'gpt-4o';
+    const client = getOpenRouterClient();
+    const model = getOpenRouterModel();
 
     // Format context
     const policyContext = formatPolicyForAI(policy);
@@ -108,7 +99,7 @@ Please recommend up to ${maxRecommendations} products that best match this polic
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
-      throw new Error('No response from OpenAI');
+      throw new Error('No response from OpenRouter');
     }
 
     const parsed = JSON.parse(content);
@@ -134,7 +125,7 @@ Please recommend up to ${maxRecommendations} products that best match this polic
     });
   } catch (error) {
     console.error('Product recommendation error:', error);
-    throw new Error('Product recommendation failed. Verify the OpenAI API configuration and retry.');
+    throw new Error('Product recommendation failed. Verify the OpenRouter API configuration and retry.');
   }
 }
 
@@ -278,8 +269,8 @@ export async function matchProducts(
   policy: PermissionPolicy,
   products: Product[]
 ): Promise<AIRecommendationResponse> {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY environment variable is not set');
+  if (!process.env.OPENROUTER_API_KEY) {
+    throw new Error('OPENROUTER_API_KEY environment variable is not set');
   }
 
   return recommendProducts({ policy, products });
