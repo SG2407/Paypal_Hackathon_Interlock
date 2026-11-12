@@ -1,0 +1,144 @@
+// IntentLock - Prisma Schema
+// AI-Powered Transaction Intent and Authorization Engine
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Demo workspace for the hackathon
+model DemoWorkspace {
+  id        String   @id @default(uuid())
+  name      String   @default("Demo User")
+  createdAt DateTime @default(now())
+
+  missions ShoppingMission[]
+}
+
+// Shopping mission created from buyer's natural language instructions
+model ShoppingMission {
+  id             String    @id @default(uuid())
+  workspaceId    String
+  originalPrompt String
+  status         String    @default("draft") // draft, pending_confirmation, active, completed, cancelled, expired
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  expiresAt      DateTime?
+
+  workspace       DemoWorkspace          @relation(fields: [workspaceId], references: [id])
+  policies        PermissionPolicy[]
+  recommendations ShoppingRecommendation[]
+  orders          PayPalOrder[]
+  auditEvents     AuditEvent[]
+  aiExecutions    AIExecution[]
+}
+
+// Versioned permission policy extracted from buyer intent
+model PermissionPolicy {
+  id          String    @id @default(uuid())
+  missionId   String
+  version     Int       @default(1)
+  policyJson  String    // JSON string containing structured policy
+  confirmedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  mission ShoppingMission @relation(fields: [missionId], references: [id])
+
+  @@unique([missionId, version])
+}
+
+// Seeded product catalog
+model Product {
+  id               String   @id @default(uuid())
+  sku              String   @unique
+  name             String
+  brand            String
+  description      String
+  category         String
+  color            String?
+  condition        String   // new, refurbished, used
+  priceCents       Int
+  shippingCents    Int
+  taxEstimateCents Int
+  currency         String   @default("USD")
+  deliveryDate     DateTime
+  merchantId       String
+  merchantName     String
+  imageUrl         String?
+  attributesJson   String   // JSON string for additional attributes
+  hasSubscription  Boolean  @default(false)
+  subscriptionInfo String?  // JSON string if subscription exists
+  createdAt        DateTime @default(now())
+
+  recommendations ShoppingRecommendation[]
+  orders          PayPalOrder[]
+}
+
+// AI product recommendations with policy evaluation
+model ShoppingRecommendation {
+  id              String   @id @default(uuid())
+  missionId       String
+  productId       String
+  aiRank          Int
+  aiExplanation   String
+  policyDecision  String   // PASS, REVIEW, BLOCK
+  evaluationJson  String   // Full policy evaluation details
+  createdAt       DateTime @default(now())
+
+  mission ShoppingMission @relation(fields: [missionId], references: [id])
+  product Product         @relation(fields: [productId], references: [id])
+}
+
+// PayPal order tracking
+model PayPalOrder {
+  id                   String    @id @default(uuid())
+  missionId            String
+  productId            String
+  paypalOrderId        String    @unique
+  amountCents          Int
+  captureAmountCents   Int?
+  captureCurrency      String?
+  currency             String    @default("USD")
+  purchaseSnapshotJson String    // Exact snapshot at order creation
+  policyVersion        Int
+  status               String    @default("created") // created, approved, captured, failed, blocked
+  captureId            String?
+  captureStatus        String?
+  buyerApprovedAt      DateTime?
+  capturedAt           DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  mission ShoppingMission @relation(fields: [missionId], references: [id])
+  product Product         @relation(fields: [productId], references: [id])
+}
+
+// Hash-chained audit events for tamper-evident logging
+model AuditEvent {
+  id           String   @id @default(uuid())
+  missionId    String?
+  eventType    String
+  eventData    String   // Canonical JSON of the event
+  previousHash String?
+  eventHash    String
+  createdAt    DateTime @default(now())
+
+  mission ShoppingMission? @relation(fields: [missionId], references: [id])
+}
+
+// AI execution logging
+model AIExecution {
+  id         String   @id @default(uuid())
+  missionId  String?
+  taskType   String   // intent_compilation, product_recommendation, policy_explanation
+  model      String
+  inputJson  String?
+  outputJson String
+  createdAt  DateTime @default(now())
+
+  mission ShoppingMission? @relation(fields: [missionId], references: [id])
+}

@@ -1,0 +1,1153 @@
+# BUILD INTENTLOCK — AI-POWERED TRANSACTION INTENT AND AUTHORIZATION ENGINE FOR PAYPAL
+
+You are acting as a senior full-stack engineer, AI engineer, payment integration engineer, and product designer.
+
+Your task is to IMPLEMENT a complete, working hackathon-quality application called **IntentLock** directly inside this repository.
+
+Do not just explain how to build it. Create the files, implement the functionality, install dependencies, run the application, run tests, identify errors, and fix them.
+
+Do not stop after producing a plan. Work through the implementation until the acceptance criteria are met.
+
+---
+
+# 1. PROJECT VISION
+
+Product name: IntentLock
+
+Tagline: "Your AI can shop. You control what it can buy."
+
+IntentLock is an AI-powered transaction intent and authorization layer designed for PayPal's agentic commerce ecosystem.
+
+Problem:
+
+AI shopping agents can search, compare, recommend, and initiate purchases. However, they can select products that violate the buyer's actual instructions.
+
+Examples:
+
+- Buying a refurbished product when the customer requested a new one.
+- Exceeding the buyer's total budget after shipping and tax.
+- Adding an unwanted recurring subscription.
+- Purchasing an alternative product without permission.
+- Increasing the checkout price after the original purchase request.
+- Purchasing an item that will arrive after the customer's deadline.
+
+IntentLock converts natural-language buyer instructions into a structured purchasing permission policy.
+
+An AI shopping assistant can recommend and prepare products, but a separate deterministic policy engine must check the actual purchase before it can proceed to PayPal payment capture.
+
+The system must have three possible decisions:
+
+1. PASS — The order satisfies all mandatory requirements and can proceed to buyer approval.
+2. REVIEW — The purchase contains uncertainty or requires additional buyer permission.
+3. BLOCK — A mandatory constraint is violated. Payment capture must not happen.
+
+Core product principle:
+
+**The AI can recommend purchases. The deterministic policy engine controls purchasing permissions. The buyer retains final authorization.**
+
+This is a prototype of a PayPal product capability, not a generic ecommerce store.
+
+# 2. HACKATHON REQUIREMENTS — NON-NEGOTIABLE
+
+The project must comply with the PayPal AI Hackathon requirements.
+
+A. PayPal integration must be meaningful and functional.
+
+Use:
+- PayPal Sandbox.
+- PayPal Orders v2 REST API.
+- PayPal JavaScript SDK v6.
+- PayPal buyer approval flow.
+- Server-side order creation.
+- Server-side payment capture.
+- Actual PayPal sandbox transaction IDs.
+
+B. AI integration must be meaningful.
+
+Use the OpenAI API.
+
+AI must perform:
+- Natural-language purchase intent extraction.
+- Structured purchasing-policy generation.
+- Product recommendation and ranking based on the buyer's instructions.
+- Natural-language explanation of policy violations.
+
+Do not pretend that displaying static AI-generated text is an actual AI integration.
+
+C. The application must be interactive and functional.
+
+D. Include a public repository with complete source code and an MIT LICENSE file.
+
+E. Include clear installation, execution, and testing instructions in README.md.
+
+F. Document the AI tools and PayPal technologies used.
+
+G. Build a demonstration flow that can be recorded in a YouTube video under three minutes.
+
+IMPORTANT:
+- Never use PayPal production credentials.
+- Never use PayPal live endpoints.
+- Never accept real money.
+- Do not implement a simulated PayPal success response.
+- Actual PayPal payment creation and capture must use sandbox endpoints.
+- Clearly identify the seeded product catalog as demonstration data, not a live merchant marketplace.
+
+# 3. TECHNOLOGY STACK
+
+Use the following stack:
+
+Frontend:
+- Next.js App Router.
+- React.
+- TypeScript.
+- Tailwind CSS.
+- Lucide icons.
+- shadcn/ui components where useful.
+
+Backend:
+- Next.js Route Handlers.
+- TypeScript.
+- Zod for input validation.
+- Server-only PayPal API integration.
+
+Database:
+- Prisma ORM.
+- SQLite for straightforward local development.
+- Store the database locally and document how to initialize it.
+
+AI:
+- OpenAI Node.js SDK.
+- Structured JSON output.
+- Configurable model through OPENAI_MODEL environment variable.
+
+Payments:
+- PayPal JavaScript SDK v6.
+- PayPal Orders v2 REST API.
+- PayPal Sandbox exclusively.
+
+Testing:
+- Vitest.
+- React Testing Library where appropriate.
+- Mock external PayPal HTTP calls in automated integration tests.
+- Perform a real sandbox end-to-end test manually.
+
+Use current stable, compatible dependency versions. Do not install unnecessary libraries.
+
+# 4. APPLICATION STRUCTURE
+
+Implement these pages:
+
+## Page 1: Main Dashboard — /
+
+Design a premium fintech dashboard.
+
+It should contain:
+
+- IntentLock branding.
+- Navigation sidebar.
+- Create Purchase Mission button.
+- Total shopping missions.
+- Approved purchase count.
+- Blocked transaction count.
+- Active purchase missions.
+- Recent AI policy decisions.
+- Recent PayPal sandbox transactions.
+- Latest audit events.
+
+Create realistic dashboard visuals using real database records.
+
+Do not use hardcoded random statistics after the database has been initialized.
+
+Use a clean, professional fintech design with:
+- White or very light neutral background.
+- Deep navy typography.
+- Subtle borders and shadows.
+- Green for PASS.
+- Amber for REVIEW.
+- Red for BLOCK.
+- Responsive layout.
+- Consistent typography.
+- Clear loading and error states.
+
+Avoid an overly colorful dashboard.
+
+## Page 2: Create Purchase Mission — /missions/new
+
+This is the primary starting point.
+
+Create an elegant form with a large natural-language text area.
+
+Page heading:
+
+"What do you want your AI shopping agent to buy?"
+
+Placeholder:
+
+"Find me new black Sony noise-cancelling headphones. Maximum budget $180 including tax and shipping. Must arrive by Friday. No refurbished products, subscriptions, or replacements. I want to approve the payment myself."
+
+Include three example prompt buttons:
+- Electronics purchase.
+- Grocery purchase.
+- Office equipment purchase.
+
+For the hackathon demonstration, electronics is the fully supported scenario.
+
+When the user clicks Generate Purchase Permissions:
+
+1. Send the buyer's prompt to the backend.
+2. Call the OpenAI API.
+3. Convert the prompt into a structured permission policy.
+4. Validate the generated policy with Zod.
+5. Save the mission and permission policy in the database.
+6. Display the generated policy.
+7. Ask the buyer to confirm the policy before proceeding.
+
+Never silently invent missing purchasing permissions.
+
+If critical information is unclear, return clarification questions and prevent the mission from proceeding until the relevant information is supplied.
+
+Display:
+- Product category.
+- Required brand.
+- Required attributes.
+- Maximum total budget.
+- Currency.
+- Whether shipping is included.
+- Whether tax is included.
+- Allowed product condition.
+- Delivery deadline.
+- Quantity limits.
+- Subscription permissions.
+- Add-on permissions.
+- Substitution permissions.
+- Merchant restrictions.
+- Human approval requirement.
+- Permission expiration time.
+
+Allow the buyer to edit the extracted policy before confirming it.
+
+The policy confirmation should create a versioned, saved permission record.
+
+## Page 3: Product Discovery and Intent Validation — /missions/[id]
+
+This is the most important product screen.
+
+After the buyer confirms the intent:
+
+1. Load products from the local seeded catalog.
+2. Send the eligible product information and the user's intent to OpenAI.
+3. Ask AI to identify and rank suitable products.
+4. Return product IDs from the supplied catalog only.
+5. Never allow the AI to invent products, merchants, prices, inventory or delivery dates.
+6. Pass every recommendation through the deterministic policy engine.
+7. Display the resulting PASS, REVIEW or BLOCK decision.
+
+Seed the catalog with at least six headphone products.
+
+Each product must have:
+
+- ID.
+- SKU.
+- Name.
+- Brand.
+- Description.
+- Category.
+- Color.
+- Condition.
+- Price in integer cents.
+- Shipping cost in integer cents.
+- Demonstration tax estimate in integer cents.
+- Currency.
+- Estimated delivery date.
+- Merchant name.
+- Merchant ID.
+- Subscription/add-on information.
+- Product image or locally stored placeholder image.
+- Product attributes.
+
+Include these example test conditions:
+
+Product A:
+Sony headphones, black, refurbished, $159.99.
+
+Expected decision: BLOCK when buyer requires new condition.
+
+Product B:
+Sony headphones, black, new, but total cost including shipping and demo tax exceeds $180.
+
+Expected decision: BLOCK.
+
+Product C:
+Sony headphones, black, new, with total cost below $180 and delivery before the buyer's deadline.
+
+Expected decision: PASS.
+
+Product D:
+Sony headphones, black, new, but with an unauthorized recurring subscription added.
+
+Expected decision: BLOCK.
+
+Product E:
+A different brand with similar specifications.
+
+Expected decision: REVIEW or BLOCK according to the confirmed substitution policy.
+
+Product F:
+A product arriving after the specified delivery deadline.
+
+Expected decision: BLOCK.
+
+Use realistic seeded data and clearly label it as demonstration catalog data.
+
+Display product cards with:
+- Product image.
+- Product name.
+- Brand.
+- Price.
+- Condition.
+- Shipping.
+- Demo tax estimate.
+- Total cost.
+- Delivery estimate.
+- Merchant.
+- Policy decision.
+
+A buyer should be able to inspect exactly why a product passed or failed.
+
+Provide a button to view the detailed policy evaluation.
+
+A product can proceed to checkout only when it receives PASS.
+
+A REVIEW outcome must require explicit additional buyer permission and a recorded policy update before checkout.
+
+A BLOCK outcome must never create or capture a PayPal order.
+
+## Page 4: Intent Validation Detail
+
+Implement a detailed validation screen or expandable panel.
+
+For each product, display individual checks:
+
+- Product identity.
+- Category.
+- Brand.
+- Condition.
+- Price.
+- Shipping cost.
+- Tax estimate.
+- Total budget.
+- Delivery deadline.
+- Quantity.
+- Subscription presence.
+- Unauthorized add-ons.
+- Merchant restrictions.
+- Policy expiration.
+
+Each check should show:
+- Expected value.
+- Actual value.
+- PASS, REVIEW or BLOCK.
+- A precise explanation.
+
+Do not ask an LLM to make final authorization decisions.
+
+Implement all enforcement in deterministic TypeScript code.
+
+## Page 5: PayPal Sandbox Checkout — /checkout/[missionId]
+
+This page proves the product actually works with PayPal.
+
+Display:
+- Selected product.
+- Buyer intent summary.
+- Total amount.
+- Tax estimate.
+- Shipping.
+- Policy decision.
+- Mission ID.
+- PayPal order creation status.
+- Buyer approval status.
+
+Before creating the PayPal order, re-evaluate the product against the current confirmed policy.
+
+Only a PASS decision is allowed.
+
+Use PayPal JavaScript SDK v6.
+
+Use the sandbox client-side SDK:
+
+https://www.sandbox.paypal.com/web-sdk/v6/core
+
+Use the PayPal Sandbox REST API base URL:
+
+https://api-m.sandbox.paypal.com
+
+Implement OAuth token acquisition server-side using the sandbox Client ID and Secret.
+
+The secret must never be sent to the browser.
+
+Implement:
+
+POST /api/orders
+
+Behavior:
+1. Accept mission ID and product ID only.
+2. Fetch the mission and policy from the database.
+3. Fetch the product from the database.
+4. Compute line items and the total server-side using integer cents.
+5. Include tax and shipping consistently.
+6. Run the deterministic policy engine.
+7. Reject anything other than PASS.
+8. Create an actual PayPal sandbox order using Orders v2.
+9. Include the mission ID as an appropriate reference/custom ID.
+10. Store the PayPal order ID and the exact purchase snapshot.
+11. Record the event in the audit log.
+12. Return the PayPal order ID to the frontend.
+
+Do not trust price, currency, total or product attributes supplied by the frontend.
+
+Use PayPal order intent CAPTURE.
+
+Use the appropriate PayPal order amount breakdown and line-item information so the retrieved order contains the actual purchase details.
+
+Implement the JavaScript SDK v6 checkout using the current official PayPal documentation.
+
+Use:
+- createInstance()
+- findEligibleMethods()
+- createPayPalOneTimePaymentSession()
+- A PayPal button element.
+- The SDK's supported buyer approval callback.
+- The SDK's supported cancellation callback.
+- The SDK's error callback.
+
+Do not use obsolete or guessed SDK methods.
+
+Follow the latest v6 official integration guide.
+
+Buyer approval must happen through the real PayPal Sandbox buyer experience.
+
+## 6. MOST IMPORTANT: PRE-CAPTURE VALIDATION
+
+Implement:
+
+POST /api/orders/[orderId]/capture
+
+This endpoint is the core security component.
+
+Never capture money merely because the frontend says that checkout was approved.
+
+Server-side steps:
+
+1. Find the PayPal order in the local database.
+2. Find its associated shopping mission.
+3. Load the exact confirmed permission-policy version.
+4. Load the original server-generated purchase snapshot.
+5. Retrieve the actual PayPal order from the Sandbox REST API using the order ID.
+6. Verify that the PayPal order belongs to the application's stored order record.
+7. Verify that PayPal reports the order as APPROVED.
+8. Compare the actual order amount against the saved server-generated amount.
+9. Verify currency.
+10. Verify each item, quantity and SKU where available.
+11. Compare actual PayPal order details with the stored purchase snapshot.
+12. Re-run the deterministic permission engine.
+13. Check that the permission has not expired.
+14. Verify that the human buyer approval step has occurred.
+15. If any mandatory check fails, return HTTP 409 with an explicit reason and DO NOT capture.
+16. Only if every check succeeds, call the actual PayPal capture endpoint.
+17. Verify the PayPal capture response.
+18. Save the actual capture ID, transaction status, final amount and timestamp.
+19. Record a final audit event.
+20. Show the completed sandbox transaction in the UI.
+
+Implement idempotency.
+
+Repeated capture requests must not accidentally create duplicate payments. If the order was already captured, retrieve and return its saved capture result rather than attempting a new capture.
+
+Do not accept PayPal order IDs that do not exist in the application's own database.
+
+Do not implement automatic capture without buyer approval.
+
+## 7. DEMONSTRATE CART TAMPERING
+
+This is a very important differentiating feature.
+
+Create a sandbox-only developer demonstration action:
+
+"Simulate unauthorized cart modification"
+
+It should simulate the server-side purchase snapshot or order context being changed after a PayPal order has been created.
+
+For example:
+
+Original approved purchase:
+Sony headphones — $149.99.
+
+Unauthorized change:
+Add a recurring subscription of $19.99 per month.
+
+The simulation must cause the pre-capture validation to detect the unauthorized change.
+
+The expected result:
+
+BLOCK.
+
+The interface must show:
+- Original buyer permission.
+- Original order details.
+- Changed purchase details.
+- Detected policy violation.
+- Explanation that capture was prevented.
+
+Do not actually capture the altered transaction.
+
+This simulation feature must be clearly marked as a test/demo scenario.
+
+It must be disabled outside development/demo mode, and it must never alter or falsify a real PayPal transaction response.
+
+Also include an amount-tampering test.
+
+The production capture logic must always re-fetch and validate the actual PayPal order.
+
+## 8. INTENT RECEIPT — /receipts/[missionId]
+
+After a successful sandbox purchase, create a detailed transaction receipt.
+
+Display:
+
+- Mission ID.
+- Original buyer prompt.
+- Confirmed permission policy.
+- Policy version.
+- Selected product.
+- Original product price.
+- Shipping.
+- Tax estimate.
+- Final total.
+- PayPal order ID.
+- PayPal capture ID.
+- PayPal transaction status.
+- Buyer approval timestamp.
+- Capture timestamp.
+- AI recommendation explanation.
+- Policy validation results.
+- Full audit event timeline.
+
+Create an append-only application audit system.
+
+Use SHA-256 hash chaining.
+
+Each audit record must contain:
+- Event ID.
+- Mission ID.
+- Event type.
+- Canonical event JSON.
+- Creation timestamp.
+- Previous event hash.
+- Current event hash.
+
+The hash should be computed from the previous hash and canonicalized event information.
+
+Never expose API routes that edit or delete audit history.
+
+Call the feature "Tamper-evident intent audit trail", not immutable blockchain storage.
+
+Implement a function that validates the event hash chain and displays whether the audit record passes verification.
+
+## 9. AI IMPLEMENTATION
+
+Use the OpenAI Node SDK.
+
+Read the API key from a server-only environment variable.
+
+Use structured output with strict Zod validation.
+
+Implement separate modules:
+
+A. Intent Compiler
+
+Input:
+Natural-language buyer shopping instructions.
+
+Output:
+A structured permission policy.
+
+It should extract:
+- Product category.
+- Brand.
+- Required attributes.
+- Allowed condition.
+- Maximum budget.
+- Currency.
+- Tax/shipping inclusion.
+- Delivery deadline.
+- Quantity limit.
+- Subscription permissions.
+- Add-on permissions.
+- Substitution permissions.
+- Merchant restrictions.
+- Mandatory human approval.
+- Expiration.
+
+If the customer does not specify an important condition, represent it as unknown or ask for clarification.
+
+Never fabricate the buyer's intent.
+
+B. Product Recommendation Agent
+
+Input:
+Confirmed buyer policy and the real seeded product list.
+
+Output:
+A ranked list of product IDs and short explanations.
+
+The AI may recommend products but cannot override policy restrictions.
+
+Every output product ID must exist in the catalog.
+
+C. Policy Explanation Agent
+
+Input:
+A deterministic policy evaluation result.
+
+Output:
+A concise, understandable explanation for the buyer.
+
+AI explanations are informational only. Never use AI explanations as proof that a product has passed validation.
+
+Use deterministic code for the final decision.
+
+Store:
+- Model used.
+- Input mission ID.
+- Structured AI output.
+- Timestamp.
+- AI recommendation.
+- Prompt version.
+
+Use safe error handling and do not store unnecessary personal information.
+
+Do not pretend the AI has called PayPal. Payment APIs must be invoked by the backend's actual PayPal integration.
+
+If OPENAI_API_KEY is missing, show a setup error. Do not silently pretend that a real AI operation took place.
+
+# 10. DETERMINISTIC POLICY ENGINE
+
+Create an independent policy engine module.
+
+Use strict TypeScript types.
+
+Possible input:
+
+- Confirmed permission policy.
+- Product record.
+- Server-generated cart details.
+- Current time.
+- Optional PayPal retrieved order details.
+
+Possible result:
+
+{
+  decision: "PASS" | "REVIEW" | "BLOCK",
+  violations: [],
+  warnings: [],
+  checks: [],
+  evaluatedAt: "...",
+  policyVersion: "..."
+}
+
+Use the following logic:
+
+BLOCK:
+- Total exceeds maximum budget.
+- Wrong currency.
+- Refurbished product when new is required.
+- Prohibited subscription exists.
+- Unauthorized add-on exists.
+- Delivery after mandatory deadline.
+- Unauthorized product substitution.
+- Permission expired.
+- Product is missing.
+- Actual order total does not match the stored purchase.
+- Actual PayPal line items do not match the original order.
+- Order is not approved.
+- Buyer approval is not recorded.
+
+REVIEW:
+- Product attribute information is missing.
+- Important buyer instruction is ambiguous.
+- Alternative product requires permission.
+- Merchant identity is uncertain.
+- Product information cannot be verified.
+
+PASS:
+- All mandatory restrictions are satisfied.
+- Required information is available.
+- The total is within budget.
+- The product satisfies the approved policy.
+- The mission is valid and unexpired.
+
+Do not allow missing data to default to PASS.
+
+Write unit tests for every rule.
+
+# 11. DATABASE DESIGN
+
+Use Prisma and SQLite.
+
+Create appropriate models and relationships.
+
+Required models:
+
+User or DemoWorkspace:
+- id
+- name
+- createdAt
+
+ShoppingMission:
+- id
+- originalPrompt
+- status
+- createdAt
+- updatedAt
+- expiresAt
+
+PermissionPolicy:
+- id
+- missionId
+- version
+- policyJson
+- confirmedAt
+- createdAt
+
+Product:
+- id
+- sku
+- name
+- brand
+- category
+- attributesJson
+- condition
+- priceCents
+- shippingCents
+- taxEstimateCents
+- currency
+- deliveryDate
+- merchantId
+- merchantName
+- createdAt
+
+ShoppingRecommendation:
+- id
+- missionId
+- productId
+- aiRank
+- aiExplanation
+- policyDecision
+- evaluationJson
+
+PayPalOrder:
+- id
+- missionId
+- productId
+- paypalOrderId
+- amountCents
+- currency
+- purchaseSnapshotJson
+- policyVersion
+- status
+- captureId
+- createdAt
+- updatedAt
+
+AuditEvent:
+- id
+- missionId
+- eventType
+- eventData
+- previousHash
+- eventHash
+- createdAt
+
+AIExecution:
+- id
+- missionId
+- taskType
+- model
+- outputJson
+- createdAt
+
+Use migrations and add a database seed script.
+
+Use integer cents for all money calculations.
+
+Do not rely on JavaScript floating-point arithmetic for payment totals.
+
+# 12. API ROUTES
+
+Implement typed, validated API routes.
+
+At minimum:
+
+POST /api/intent/compile
+POST /api/missions
+GET /api/missions
+GET /api/missions/[id]
+PUT /api/missions/[id]/policy
+POST /api/missions/[id]/confirm
+POST /api/missions/[id]/recommend
+POST /api/missions/[id]/evaluate
+GET /api/products
+POST /api/orders
+GET /api/orders/[orderId]
+POST /api/orders/[orderId]/capture
+GET /api/receipts/[missionId]
+GET /api/audit/[missionId]
+POST /api/demo/simulate-drift
+
+Validate all requests using Zod.
+
+Use consistent error response structures.
+
+Do not reveal server credentials in error responses.
+
+Add sensible rate limiting to AI endpoints.
+
+For the demo endpoint, require a development-only configuration and reject requests outside the permitted demo environment.
+
+# 13. PAYPAL SANDBOX SECURITY
+
+Use these environment variables:
+
+PAYPAL_ENV=sandbox
+PAYPAL_CLIENT_ID=
+PAYPAL_CLIENT_SECRET=
+NEXT_PUBLIC_PAYPAL_CLIENT_ID=
+OPENAI_API_KEY=
+OPENAI_MODEL=
+DATABASE_URL=file:./dev.db
+APP_BASE_URL=http://localhost:3000
+
+All PayPal REST requests must go to:
+
+https://api-m.sandbox.paypal.com
+
+The JavaScript SDK must use the sandbox host:
+
+https://www.sandbox.paypal.com/web-sdk/v6/core
+
+Important:
+
+- The PayPal Client ID may be exposed to the frontend.
+- The PayPal Client Secret must remain server-side.
+- OPENAI_API_KEY must remain server-side.
+- Add .env to .gitignore.
+- Commit only .env.example with blank placeholders.
+- Do not hardcode credentials.
+- Do not log secrets.
+- Check that PAYPAL_ENV is sandbox during startup.
+- Reject any attempted live configuration.
+- Validate the retrieved PayPal order before capture.
+- Do not trust the client-side amount.
+- Protect capture routes against replay and duplicate requests.
+
+The backend should cache OAuth access tokens until they are close to expiration.
+
+Use PayPal-Request-Id where appropriate for idempotent operations.
+
+Add clear PayPal API error handling.
+
+# 14. TESTING REQUIREMENTS
+
+Write actual automated tests.
+
+Policy engine tests:
+
+1. Valid new product under total budget = PASS.
+2. Refurbished product when new is required = BLOCK.
+3. Product total above budget = BLOCK.
+4. Unauthorized subscription = BLOCK.
+5. Unauthorized recurring add-on = BLOCK.
+6. Late delivery = BLOCK.
+7. Missing product information = REVIEW.
+8. Unauthorized product replacement = REVIEW or BLOCK as configured.
+9. Expired permission = BLOCK.
+10. Different currency = BLOCK.
+11. Missing policy = BLOCK.
+12. Actual order total differs = BLOCK.
+
+PayPal integration tests:
+
+1. Token acquisition works with mocked sandbox HTTP responses.
+2. Server creates an order only for PASS products.
+3. Client cannot manipulate order price.
+4. Server retrieves the actual PayPal order before capture.
+5. Non-approved order is not captured.
+6. Mismatching amount prevents capture.
+7. Mismatching items prevent capture.
+8. Repeated capture does not produce duplicate payment.
+9. Unknown PayPal order ID is rejected.
+10. Sandbox API errors are handled safely.
+
+AI tests:
+
+- Valid prompt produces valid structured policy.
+- Ambiguous prompt requests clarification.
+- Invalid AI output is rejected by Zod.
+- Unknown products cannot be introduced by the recommendation agent.
+- AI recommendation cannot override deterministic BLOCK.
+
+Add instructions for manual testing using real PayPal sandbox credentials.
+
+All automated tests must be runnable without making actual PayPal transactions.
+
+Mock external API responses only in automated tests, not in the real application flow.
+
+# 15. UI QUALITY
+
+This is a hackathon judged product, not a basic tutorial application.
+
+The UI must look like a premium fintech product.
+
+Use a consistent design system.
+
+Important screens:
+- Dashboard.
+- Create mission.
+- Confirm policy.
+- Product comparison.
+- Policy validation.
+- PayPal checkout.
+- Transaction receipt.
+- Audit timeline.
+
+Create:
+- Proper navigation.
+- Loading skeletons.
+- Toast notifications.
+- Empty states.
+- Error boundaries.
+- Responsive design.
+- Good mobile layout.
+- Clear visual distinction between PASS, REVIEW and BLOCK.
+
+The most impressive screen must be the policy comparison screen.
+
+Show the user exactly:
+"What you asked for" versus "What the agent is about to purchase."
+
+Do not fill the interface with useless charts.
+
+Every displayed number should come from a real database record or a clearly labelled demonstration value.
+
+# 16. SEED AND DEMONSTRATION DATA
+
+Create a database seed script.
+
+Include six headphones with the test scenarios described earlier.
+
+Add a default demo mission template:
+
+"Find me new black Sony noise-cancelling headphones for a total price below $180 including tax and shipping. They must arrive by the upcoming Friday. No refurbished products, no subscription, no unwanted add-ons, and no substitutions. I want to approve the payment myself."
+
+Make relative date parsing use the actual current date supplied to the AI.
+
+Store the resulting deadline as an ISO date.
+
+The demonstration must work even if the system is run on a different day.
+
+# 17. DEMO SCENARIO
+
+Prepare the application for the following complete story:
+
+STEP 1:
+User enters the headphone purchase request.
+
+STEP 2:
+OpenAI converts it into a structured permission policy.
+
+STEP 3:
+Buyer reviews and confirms the policy.
+
+STEP 4:
+AI recommends products from the seeded catalog.
+
+STEP 5:
+Policy engine blocks:
+- Refurbished headphones.
+- A product exceeding the full budget.
+- A product with an unauthorized subscription.
+
+STEP 6:
+It selects one fully compliant product.
+
+STEP 7:
+Buyer proceeds to actual PayPal sandbox checkout.
+
+STEP 8:
+Buyer logs into a separate PayPal personal sandbox account and approves the payment.
+
+STEP 9:
+Backend retrieves the approved PayPal order, validates the real order details against the buyer policy, and captures it.
+
+STEP 10:
+Application stores and displays actual sandbox PayPal order and capture IDs.
+
+STEP 11:
+Show the Intent Receipt and hash-linked audit timeline.
+
+STEP 12:
+Start another test order and run the unauthorized-cart-modification demo.
+
+STEP 13:
+Show that the application blocks capture because the final purchase no longer satisfies the buyer's permission.
+
+Both scenarios must work in the application.
+
+# 18. README AND HACKATHON SUBMISSION
+
+Create a complete README.md containing:
+
+1. Project name and tagline.
+2. Problem statement.
+3. Target users.
+4. Solution.
+5. Product features.
+6. Architecture overview.
+7. How AI is used.
+8. How PayPal is integrated.
+9. Technology stack.
+10. Architecture diagram using Mermaid.
+11. Screenshots section with placeholders.
+12. Local installation steps.
+13. Environment variable setup.
+14. Prisma migration instructions.
+15. Database seeding instructions.
+16. How to obtain PayPal Sandbox credentials.
+17. How to create separate sandbox buyer and seller accounts.
+18. How to test a sandbox checkout.
+19. How to run automated tests.
+20. Security considerations.
+21. Known limitations.
+22. Demo flow.
+23. Instructions for judges to run the project.
+
+Include official documentation references:
+
+PayPal Sandbox:
+https://developer.paypal.com/sandbox-testing/overview/
+
+PayPal Sandbox Accounts:
+https://developer.paypal.com/sandbox-testing/accounts
+
+PayPal Checkout:
+https://developer.paypal.com/checkout/integrate
+
+PayPal Orders API:
+https://developer.paypal.com/docs/api/orders/v2/
+
+OpenAI API documentation:
+https://platform.openai.com/docs/
+
+Create an MIT LICENSE file at the repository root.
+
+Create .env.example with blank secrets.
+
+Create a proper .gitignore.
+
+Do not commit actual credentials.
+
+Document the AI tool and model used in a dedicated section.
+
+# 19. IMPLEMENTATION ORDER
+
+Work in the following order.
+
+Phase 1:
+Inspect the repository and report its current state. Set up the Next.js application and development dependencies.
+
+Phase 2:
+Create the Prisma schema, database migration and seed catalog.
+
+Phase 3:
+Implement the deterministic policy engine and unit tests before implementing payments.
+
+Phase 4:
+Implement OpenAI intent compilation and product recommendation.
+
+Phase 5:
+Build the main dashboard, mission creation and product validation interfaces.
+
+Phase 6:
+Implement PayPal Sandbox OAuth, Orders API order creation and SDK v6 checkout.
+
+Phase 7:
+Implement actual order retrieval, pre-capture revalidation, capture and idempotency.
+
+Phase 8:
+Implement the Intent Receipt, audit chain and cart-drift demonstration.
+
+Phase 9:
+Complete testing, documentation, styling and error handling.
+
+At the end of each phase:
+- Check TypeScript errors.
+- Run relevant tests.
+- Fix errors before proceeding.
+
+Do not leave placeholder functions for core requirements.
+
+Do not use pseudocode in place of working code.
+
+If an official API method has changed, consult the current official developer documentation instead of guessing.
+
+If a non-essential feature threatens the core payment flow, prioritize the real PayPal transaction workflow.
+
+# 20. FINAL ACCEPTANCE CRITERIA
+
+The application is NOT complete until these conditions hold:
+
+[ ] Application installs successfully.
+[ ] Application starts using documented commands.
+[ ] Database migrations run.
+[ ] Seed script creates product catalog.
+[ ] AI intent extraction works with the OpenAI API.
+[ ] Generated policy is validated and saved.
+[ ] Buyer can edit and confirm the policy.
+[ ] AI recommends products only from the catalog.
+[ ] Deterministic policy engine correctly returns PASS, REVIEW and BLOCK.
+[ ] Invalid products cannot enter checkout.
+[ ] PayPal Sandbox order creation works.
+[ ] Actual PayPal SDK v6 checkout works.
+[ ] Buyer can approve using a sandbox personal account.
+[ ] Backend retrieves the actual PayPal order.
+[ ] Backend validates the order before capture.
+[ ] Mismatching orders cannot be captured.
+[ ] Actual PayPal sandbox capture works for valid orders.
+[ ] Actual PayPal order and capture IDs are saved.
+[ ] Intent Receipt displays actual transaction information.
+[ ] Audit chain verifies.
+[ ] Unauthorized cart modification test blocks capture.
+[ ] Unit tests pass.
+[ ] README contains complete setup instructions.
+[ ] .env.example exists.
+[ ] .gitignore prevents secret commits.
+[ ] MIT LICENSE exists at the repository root.
+[ ] Source code contains no real credentials.
+[ ] There is no accidental production PayPal configuration.
+[ ] The application is suitable for a live three-minute hackathon demo.
+
+When implementation is finished, provide a concise final engineering report showing:
+
+1. Files created and major features implemented.
+2. Commands to run the application.
+3. Environment variables I must configure.
+4. How to obtain the PayPal sandbox credentials.
+5. How to perform a real sandbox checkout.
+6. Automated test results.
+7. Any remaining incomplete requirements.
+8. The exact steps I need to perform before recording the demo.
+
+Do not claim something works unless you have actually tested it.
+
+Start by inspecting the repository, then implement the complete application.
