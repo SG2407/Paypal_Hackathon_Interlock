@@ -32,6 +32,9 @@ export function PolicyDisplay({ policy, className }: { policy: PermissionPolicy;
           <div className="space-y-1">
             <p className="text-sm text-gray-500">Product constraints</p>
             <p className="font-medium capitalize">{policy.productCategory}{policy.requiredBrand ? ` · ${policy.requiredBrand}` : ''}</p>
+            {policy.allowedBrands?.length ? (
+              <p className="text-sm text-gray-700">Allowed brands: {policy.allowedBrands.join(' or ')}</p>
+            ) : null}
             <div className="flex flex-wrap gap-1">
               <Badge variant="info">{policy.allowedCondition}</Badge>
               {attributes.map(({ attribute, value }) => (

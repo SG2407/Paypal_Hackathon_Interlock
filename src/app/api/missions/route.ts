@@ -27,7 +27,7 @@ export async function GET() {
         id: m.id,
         intent: m.originalPrompt,
         status: m.status,
-        policy: m.policies[0] ? JSON.parse(m.policies[0].policyJson) : {},
+        policy: m.policies[0] ? JSON.parse(m.policies[0].policyJson) : null,
         createdAt: m.createdAt.toISOString(),
       })),
     });

@@ -15,6 +15,8 @@ IMPORTANT GUIDELINES:
 8. Use the buyer's clarification answers when deciding which product the mission covers. Do not combine different products into one policy.
 9. A successful response must contain one complete policy matching the fields below. Do not return an array or an object keyed by product names.
 10. If clarification is needed, set success to false, policy to null, and include at least one specific clarification question. Never return a partial policy.
+11. For alternative brands such as "Sony or Bose", set requiredBrand to null and allowedBrands to ["Sony", "Bose"]. Never combine alternative brands into a single string.
+12. Put brand constraints only in requiredBrand or allowedBrands and condition only in allowedCondition; do not put brand or condition in requiredAttributes.
 
 OUTPUT FORMAT:
 You must respond with a valid JSON object matching this schema:
@@ -23,6 +25,7 @@ You must respond with a valid JSON object matching this schema:
   "policy": null | {
     "productCategory": string (e.g., "headphones", "laptop", "phone"),
     "requiredBrand": string | null,
+    "allowedBrands": string[] (optional, nonempty list of acceptable alternatives),
     "requiredAttributes": [{ "attribute": string, "value": string, "required": boolean }],
     "allowedCondition": "new" | "refurbished" | "used" | "any",
     "maxBudgetCents": number (integer cents),

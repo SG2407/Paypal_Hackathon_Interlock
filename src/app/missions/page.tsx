@@ -4,17 +4,15 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Plus, Shield, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Button, Card, CardContent, Badge } from '@/components/ui';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { formatCents } from '@/types/product';
+import type { PermissionPolicy } from '@/types/policy';
 
 interface Mission {
   id: string;
   intent: string;
   status: 'pending' | 'active' | 'completed' | 'cancelled';
-  policy: {
-    maxAmount: number;
-    currency: string;
-    allowedCategories?: string[];
-  };
+  policy: Pick<PermissionPolicy, 'maxBudgetCents' | 'currency' | 'productCategory'> | null;
   createdAt: string;
   productName?: string;
 }
@@ -127,11 +125,11 @@ export default function MissionsPage() {
                       </p>
                       <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
                         <span>
-                          Budget: {formatCurrency(mission.policy.maxAmount, mission.policy.currency)}
+                          Budget: {mission.policy ? formatCents(mission.policy.maxBudgetCents, mission.policy.currency) : 'Not set'}
                         </span>
-                        {mission.policy.allowedCategories && mission.policy.allowedCategories.length > 0 && (
+                        {mission.policy?.productCategory && (
                           <span>
-                            Categories: {mission.policy.allowedCategories.join(', ')}
+                            Category: {mission.policy.productCategory}
                           </span>
                         )}
                       </div>

@@ -56,6 +56,24 @@ function parseIntentResponse(content: string): IntentCompilationResponse {
     throw new Error('A successful response cannot require clarification');
   }
   const policy = z.record(z.string(), z.unknown()).parse(envelope.policy);
+  if (typeof policy.requiredBrand === 'string' && /\s+or\s+|,|\/|\|/i.test(policy.requiredBrand)) {
+    throw new Error('Alternative brands must be provided as an allowedBrands array');
+  }
+  if (Array.isArray(policy.allowedBrands) && policy.allowedBrands.some(
+    (brand: unknown) => typeof brand === 'string' && /\s+or\s+|,|\/|\|/i.test(brand),
+  )) {
+    throw new Error('Each allowedBrands entry must contain one brand');
+  }
+  if (policy.requiredBrand && Array.isArray(policy.allowedBrands) && policy.allowedBrands.length > 0) {
+    throw new Error('Use either requiredBrand or allowedBrands, not both');
+  }
+  if (Array.isArray(policy.requiredAttributes) && policy.requiredAttributes.some(
+    (attribute: unknown) => typeof attribute === 'object' && attribute !== null
+      && 'attribute' in attribute && typeof attribute.attribute === 'string'
+      && ['brand', 'condition'].includes(attribute.attribute.trim().toLowerCase()),
+  )) {
+    throw new Error('Brand and condition must use their dedicated policy fields');
+  }
   return IntentCompilationResponseSchema.parse({
     ...envelope,
     policy: {
@@ -103,7 +121,7 @@ export async function compileIntent(
           { role: 'user', content: `Shopping request: "${prompt}"` },
           ...(attempt === 1 ? [{
             role: 'system' as const,
-            content: 'Your previous response did not match the required format. Return valid JSON with a boolean success. For success=true include exactly one complete policy; for success=false set policy to null and provide clarificationQuestions. If the request has multiple products and the buyer has not chosen one in their clarifications, ask them to choose one.',
+            content: 'Your previous response did not match the required format. Return valid JSON with a boolean success. For success=true include exactly one complete policy; for success=false set policy to null and provide clarificationQuestions. If the request has multiple products and the buyer has not chosen one in their clarifications, ask them to choose one. Put alternative brands in allowedBrands as separate strings, and put brand and condition only in their dedicated fields, never in requiredAttributes.',
           }] : []),
         ],
         response_format: { type: 'json_object' },

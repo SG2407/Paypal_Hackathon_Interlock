@@ -12,6 +12,7 @@ Each mission covers one product; create separate missions for multiple products.
 - Compiles a buyer prompt into a Zod-validated, versioned permission policy using OpenRouter.
 - Recommends products from the local seeded catalog and explains their policy results.
 - Enforces `PASS`, `REVIEW`, and `BLOCK` using deterministic server-side rules.
+- Supports explicitly allowed alternative brands, such as Sony or Bose, without permitting other brands.
 - Records narrow, buyer-confirmed exceptions as new policy versions; hard blocks cannot be overridden.
 - Creates actual PayPal Sandbox Orders v2 orders and uses PayPal JavaScript SDK v6 for buyer approval.
 - Re-fetches and validates the real PayPal order, policy version, product, amount, currency, line items, and purchase snapshot before capture.

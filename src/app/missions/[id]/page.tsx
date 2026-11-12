@@ -63,10 +63,11 @@ export default function MissionDetailPage({ params }: { params: Promise<{ id: st
 
         // Fetch product recommendations
         const recsResponse = await fetch(`/api/missions/${id}/recommendations`);
-        if (recsResponse.ok) {
-          const recsData = await recsResponse.json();
-          setRecommendations(recsData.recommendations || []);
+        const recsData = await recsResponse.json();
+        if (!recsResponse.ok) {
+          throw new Error(recsData.error || 'Failed to load recommendations');
         }
+        setRecommendations(recsData.recommendations || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load mission');
       } finally {
@@ -221,7 +222,7 @@ export default function MissionDetailPage({ params }: { params: Promise<{ id: st
               {recommendations.length === 0 ? (
                 <div className="py-8 text-center text-gray-500">
                   <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
-                  <p className="mt-2">Loading recommendations...</p>
+                  <p className="mt-2">{error ? 'Recommendations could not be loaded.' : 'No recommendations available.'}</p>
                 </div>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -230,7 +231,9 @@ export default function MissionDetailPage({ params }: { params: Promise<{ id: st
                       key={rec.product.id}
                       product={rec.product}
                       decision={rec.evaluation.decision}
-                      explanation={rec.evaluation.checks.map((check) => check.explanation).join(' ')}
+                      explanation={rec.evaluation.decision === 'PASS'
+                        ? 'Meets the confirmed purchase policy.'
+                        : [...rec.evaluation.violations, ...rec.evaluation.warnings].map((check) => check.explanation).join(' ')}
                       aiExplanation={rec.aiExplanation}
                       selected={selectedProduct?.id === rec.product.id}
                       onSelect={() => handleProductSelect(rec)}

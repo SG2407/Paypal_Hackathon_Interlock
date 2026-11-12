@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { evaluatePolicy, validateOrderForCapture } from './index';
 import { simulateUnauthorizedSubscription } from '@/lib/demo/simulate-drift';
-import type { PermissionPolicy } from '@/types/policy';
+import { PermissionPolicySchema, type PermissionPolicy } from '@/types/policy';
 import type { Product, PurchaseSnapshot } from '@/types/product';
 import type { PayPalAPIOrder } from '@/types/paypal';
 
@@ -135,6 +135,12 @@ function createPurchaseSnapshot(product: Product): PurchaseSnapshot {
 }
 
 describe('Policy Engine', () => {
+  it('preserves older policies without an allowed-brand list and rejects an empty list', () => {
+    const oldPolicy = createBasePolicy();
+    expect(PermissionPolicySchema.parse(oldPolicy).allowedBrands).toBeUndefined();
+    expect(PermissionPolicySchema.safeParse({ ...oldPolicy, allowedBrands: [] }).success).toBe(false);
+  });
+
   describe('evaluatePolicy', () => {
     describe('PASS scenarios', () => {
       it('should PASS a compliant product within budget', () => {
@@ -176,6 +182,13 @@ describe('Policy Engine', () => {
 
         expect(result.decision).toBe('PASS');
         expect(result.checks.find(c => c.checkName === 'brand')?.decision).toBe('PASS');
+      });
+
+      it.each(['Sony', 'Bose', 'bose'])('should PASS an explicitly allowed brand: %s', (brand) => {
+        const policy = createBasePolicy({ requiredBrand: null, allowedBrands: ['Sony', 'Bose'] });
+        const result = evaluatePolicy({ policy, product: createBaseProduct({ brand }) });
+        expect(result.decision).toBe('PASS');
+        expect(result.checks.find(c => c.checkName === 'allowed_brands')?.decision).toBe('PASS');
       });
 
       it('should PASS with any condition when condition is "any"', () => {
@@ -272,6 +285,53 @@ describe('Policy Engine', () => {
 
         expect(result.decision).toBe('BLOCK');
         expect(result.violations.some(v => v.checkName === 'brand')).toBe(true);
+      });
+
+      it.each(['Apple', 'Sony imitation'])('should BLOCK a brand outside the allowed list: %s', (brand) => {
+        const policy = createBasePolicy({ requiredBrand: null, allowedBrands: ['Sony', 'Bose'] });
+        const result = evaluatePolicy({ policy, product: createBaseProduct({ brand }) });
+        expect(result.decision).toBe('BLOCK');
+        expect(result.violations.some(v => v.checkName === 'allowed_brands')).toBe(true);
+      });
+
+      it('does not allow the list to override a separate required brand', () => {
+        const policy = createBasePolicy({ requiredBrand: 'Sony', allowedBrands: ['Sony', 'Bose'] });
+        const result = evaluatePolicy({ policy, product: createBaseProduct({ brand: 'Bose' }) });
+        expect(result.decision).toBe('BLOCK');
+        expect(result.violations.some(v => v.checkName === 'brand')).toBe(true);
+      });
+
+      it('requires buyer approval for an allowed-brand substitution when substitutions are enabled', () => {
+        const policy = createBasePolicy({
+          requiredBrand: null,
+          allowedBrands: ['Sony', 'Bose'],
+          allowSubstitutions: true,
+        });
+        const product = createBaseProduct({ brand: 'Apple' });
+        expect(evaluatePolicy({ policy, product }).decision).toBe('REVIEW');
+        const approvedPolicy = {
+          ...policy,
+          approvedProducts: [{ productId: product.id, approvalReason: 'Confirmed', approvedAt: new Date().toISOString() }],
+        };
+        expect(evaluatePolicy({ policy: approvedPolicy, product }).decision).toBe('PASS');
+        expect(evaluatePolicy({ policy: approvedPolicy, product: { ...product, id: 'another' } }).decision).toBe('REVIEW');
+      });
+
+      it('enforces the allowed brand list during capture validation', () => {
+        const policy = createBasePolicy({ requiredBrand: null, allowedBrands: ['Sony', 'Bose'] });
+        const product = createBaseProduct({ brand: 'Apple' });
+        const snapshot = createPurchaseSnapshot(product);
+        const result = validateOrderForCapture({
+          policy,
+          product,
+          purchaseSnapshot: snapshot,
+          paypalOrder: createPayPalOrder(snapshot.totalCents, snapshot.currency, snapshot.productSku, product),
+          policyVersion: 1,
+          localOrderId: 'local-order-123',
+          expectedPaypalOrderId: 'paypal-order-123',
+        });
+        expect(result.decision).toBe('BLOCK');
+        expect(result.violations.some(v => v.checkName === 'allowed_brands')).toBe(true);
       });
 
       it('should BLOCK when delivery exceeds deadline', () => {

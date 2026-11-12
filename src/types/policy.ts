@@ -12,6 +12,8 @@ export const PermissionPolicySchema = z.object({
   // Product requirements
   productCategory: z.string().describe('Product category (e.g., "headphones", "electronics")'),
   requiredBrand: z.string().nullable().describe('Required brand, null if no specific brand required'),
+  allowedBrands: z.array(z.string().trim().min(1)).min(1).optional()
+    .describe('Explicitly allowed alternative brands; omit when no brand list is specified'),
   requiredAttributes: z.array(z.object({
     attribute: z.string(),
     value: z.string(),

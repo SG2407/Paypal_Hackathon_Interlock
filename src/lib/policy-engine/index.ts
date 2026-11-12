@@ -47,6 +47,13 @@ export function evaluatePolicy(input: PolicyEngineInput): PolicyEvaluation {
   if (brandCheck.decision === 'BLOCK') violations.push(brandCheck);
   else if (brandCheck.decision === 'REVIEW') warnings.push(brandCheck);
 
+  const allowedBrandsCheck = checkAllowedBrands(policy, product);
+  if (allowedBrandsCheck) {
+    checks.push(allowedBrandsCheck);
+    if (allowedBrandsCheck.decision === 'BLOCK') violations.push(allowedBrandsCheck);
+    else if (allowedBrandsCheck.decision === 'REVIEW') warnings.push(allowedBrandsCheck);
+  }
+
   // Check 3: Product condition
   const conditionCheck = checkCondition(policy, product);
   checks.push(conditionCheck);
@@ -285,6 +292,30 @@ function checkBrand(policy: PermissionPolicy, product: Product): PolicyCheck {
     actual: product.brand,
     decision: 'REVIEW',
     explanation: `Product brand "${product.brand}" differs from required "${policy.requiredBrand}" - requires buyer approval`,
+  };
+}
+
+function checkAllowedBrands(policy: PermissionPolicy, product: Product): PolicyCheck | null {
+  if (!policy.allowedBrands?.length) return null;
+
+  const expected = policy.allowedBrands.join(' or ');
+  const matches = policy.allowedBrands.some(
+    (brand) => brand.toLowerCase() === product.brand.trim().toLowerCase(),
+  );
+  const approved = policy.allowSubstitutions && hasBuyerApprovedProduct(policy, product.id);
+  const decision = matches || approved ? 'PASS' : policy.allowSubstitutions ? 'REVIEW' : 'BLOCK';
+  return {
+    checkName: 'allowed_brands',
+    expected,
+    actual: product.brand,
+    decision,
+    explanation: matches
+      ? `Product brand "${product.brand}" is among the allowed brands: ${expected}`
+      : approved
+        ? `Buyer explicitly approved this brand substitution for ${product.name}`
+        : decision === 'BLOCK'
+          ? `Product brand "${product.brand}" is not among the allowed brands: ${expected}`
+          : `Product brand "${product.brand}" is not among the allowed brands: ${expected} - requires buyer approval`,
   };
 }
 

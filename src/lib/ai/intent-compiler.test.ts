@@ -104,6 +104,53 @@ describe('OpenRouter intent compilation', () => {
     expect(createCompletion).toHaveBeenCalledTimes(2);
   });
 
+  it('retries incorrectly encoded brand and condition attributes and preserves separate allowed brands', async () => {
+    createCompletion
+      .mockResolvedValueOnce(response({
+        success: true,
+        policy: {
+          ...completePolicy,
+          requiredBrand: null,
+          requiredAttributes: [
+            { attribute: 'brand', value: 'Sony or Bose', required: true },
+            { attribute: 'condition', value: 'new', required: true },
+          ],
+        },
+        clarificationQuestions: [],
+      }))
+      .mockResolvedValueOnce(response({
+        success: true,
+        policy: { ...completePolicy, requiredBrand: null, allowedBrands: ['Sony', 'Bose'] },
+        clarificationQuestions: [],
+      }));
+
+    const result = await compileIntent({ prompt: 'Buy Sony or Bose headphones under $200, new' });
+
+    expect(createCompletion).toHaveBeenCalledTimes(2);
+    expect(result.policy).toMatchObject({
+      requiredBrand: null,
+      allowedBrands: ['Sony', 'Bose'],
+      requiredAttributes: [],
+      allowedCondition: 'new',
+    });
+  });
+
+  it.each([
+    { requiredBrand: 'Sony or Bose' },
+    { requiredBrand: null, allowedBrands: ['Sony or Bose'] },
+    { requiredBrand: 'Sony', allowedBrands: ['Sony', 'Bose'] },
+  ])('does not accept an ambiguous brand representation: %o', async (brandFields) => {
+    createCompletion.mockResolvedValue(response({
+      success: true,
+      policy: { ...completePolicy, ...brandFields },
+      clarificationQuestions: [],
+    }));
+
+    await expect(compileIntent({ prompt: 'Sony or Bose headphones under $200' }))
+      .rejects.toThrow('AI returned an incomplete policy');
+    expect(createCompletion).toHaveBeenCalledTimes(2);
+  });
+
   it('reports provider failures without retrying as a schema error', async () => {
     createCompletion.mockRejectedValueOnce(new Error('Provider unavailable'));
 

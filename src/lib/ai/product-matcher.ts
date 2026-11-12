@@ -37,6 +37,7 @@ function formatPolicyForAI(policy: PermissionPolicy): string {
   return `
 Product Category: ${policy.productCategory}
 Required Brand: ${policy.requiredBrand || 'Any'}
+Allowed Brands: ${policy.allowedBrands?.join(', ') || 'Any'}
 Max Budget: $${(policy.maxBudgetCents / 100).toFixed(2)} (${policy.budgetIncludesShipping ? 'includes' : 'excludes'} shipping/tax)
 Condition: ${policy.allowedCondition}
 Delivery Deadline: ${policy.deliveryDeadline || 'No deadline'}
@@ -167,6 +168,15 @@ export function scoreProductMatch(
     } else {
       score += 10;
       reasons.push('Exact brand match');
+    }
+    if (policy.allowedBrands?.length) {
+      if (!policy.allowedBrands.some((brand) => brand.toLowerCase() === product.brand.trim().toLowerCase())) {
+        score -= 30;
+        reasons.push(`Brand mismatch: ${product.brand} is not among ${policy.allowedBrands.join(', ')}`);
+      } else {
+        score += 10;
+        reasons.push('Allowed brand match');
+      }
     }
   }
 
