@@ -6,6 +6,7 @@ import {
 import { z } from 'zod';
 import { INTENT_COMPILER_SYSTEM_PROMPT } from './prompts';
 import { getOpenRouterClient, getOpenRouterModel } from './client';
+import { openRouterRequestError } from './provider-errors';
 
 // Default policy values for safe fallback
 function getDefaultPolicy(): Partial<PermissionPolicy> {
@@ -111,8 +112,7 @@ export async function compileIntent(
       });
       content = response.choices[0]?.message?.content;
     } catch (error) {
-      console.error('OpenRouter intent compilation request failed:', error);
-      throw new Error('The AI service could not process your request. Check the OpenRouter configuration and try again.');
+      throw openRouterRequestError(error);
     }
 
     try {

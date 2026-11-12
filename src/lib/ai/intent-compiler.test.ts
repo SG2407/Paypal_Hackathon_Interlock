@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { compileIntent } from './intent-compiler';
+import { APIError } from 'openai';
+import { compileIntent, compileIntentMock } from './intent-compiler';
+import { recommendProducts } from './product-matcher';
 
 const { createCompletion } = vi.hoisted(() => ({ createCompletion: vi.fn() }));
 
@@ -28,6 +30,7 @@ describe('OpenRouter intent compilation', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('discards partial policies when the model asks for clarification', async () => {
@@ -107,5 +110,36 @@ describe('OpenRouter intent compilation', () => {
     await expect(compileIntent({ prompt: 'Buy headphones under $200' }))
       .rejects.toThrow('AI service could not process your request');
     expect(createCompletion).toHaveBeenCalledOnce();
+  });
+
+  it('uses the same provider guidance for recommendations', async () => {
+    vi.stubEnv('OPENROUTER_API_KEY', 'test-key');
+    createCompletion.mockRejectedValueOnce(new APIError(401, undefined, 'secret', undefined));
+    const policy = compileIntentMock('Sony headphones under $200').policy!;
+
+    await expect(recommendProducts({
+      policy,
+      products: [{
+        id: 'one',
+        sku: 'sku',
+        name: 'Headphones',
+        brand: 'Sony',
+        description: '',
+        category: 'headphones',
+        color: null,
+        condition: 'new',
+        priceCents: 10000,
+        shippingCents: 0,
+        taxEstimateCents: 0,
+        currency: 'USD',
+        deliveryDate: '2026-11-15',
+        merchantId: 'store',
+        merchantName: 'Store',
+        imageUrl: null,
+        attributes: {},
+        hasSubscription: false,
+        subscriptionInfo: null,
+      }],
+    })).rejects.toThrow('OpenRouter returned HTTP 401');
   });
 });

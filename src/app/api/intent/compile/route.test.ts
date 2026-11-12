@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { APIError } from 'openai';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from './route';
 
@@ -91,5 +92,22 @@ describe('intent compilation API', () => {
       error: 'The AI returned an incomplete policy. Please try again with one product and its budget per mission.',
     });
     expect(createCompletion).toHaveBeenCalledTimes(2);
+  });
+
+  it('surfaces a sanitized provider status and actionable guidance', async () => {
+    createCompletion.mockRejectedValueOnce(new APIError(
+      402,
+      { message: 'Sensitive provider details' },
+      'Sensitive provider details',
+      undefined,
+    ));
+
+    const response = await POST(request({ intent: 'Buy headphones under $200' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(body.error).toContain('OpenRouter returned HTTP 402');
+    expect(body.error).toContain('credits');
+    expect(body.error).not.toContain('Sensitive provider details');
   });
 });

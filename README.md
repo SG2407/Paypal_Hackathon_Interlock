@@ -90,6 +90,8 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+If OpenRouter requests fail, the application reports the provider HTTP status with guidance. For example, 401 indicates an authentication problem, 402 indicates credits or account limits, and 404 can indicate an unavailable model. Restart the development server after editing `.env`, and never share your API key when reporting an error.
+
 ## PayPal Sandbox setup
 
 1. In the [PayPal Developer Dashboard](https://developer.paypal.com/dashboard/applications/sandbox), create or select a Sandbox REST app.

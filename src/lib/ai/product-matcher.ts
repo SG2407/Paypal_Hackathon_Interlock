@@ -7,6 +7,8 @@ import {
 import { Product } from '@/types/product';
 import { PRODUCT_RECOMMENDATION_SYSTEM_PROMPT } from './prompts';
 import { getOpenRouterClient, getOpenRouterModel } from './client';
+import { openRouterRequestError } from './provider-errors';
+import { APIError } from 'openai';
 
 /**
  * Format product for AI context
@@ -124,6 +126,9 @@ Please recommend up to ${maxRecommendations} products that best match this polic
       reasoning: parsed.reasoning || 'Products ranked by policy match',
     });
   } catch (error) {
+    if (error instanceof APIError) {
+      throw openRouterRequestError(error);
+    }
     console.error('Product recommendation error:', error);
     throw new Error('Product recommendation failed. Verify the OpenRouter API configuration and retry.');
   }
